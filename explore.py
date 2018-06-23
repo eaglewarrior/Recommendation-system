@@ -1,15 +1,49 @@
-# -*- coding: cp1252 -*-
-import matplotlib as mpl
-mpl.use('TkAgg')
-from matplotlib import pyplot as plt
 import pandas as pd
-import numpy as np
-col_names = ["user_id", "item_id", "rating", "timestamp"]
-data = pd.read_table('u.data', names=col_names)
-data = data.drop('timestamp', 1)
-data.info()
-plt.hist(data['rating'])
-plt.show()
-Number_Ratings = len(data)
-Number_Movies = len(np.unique(data['item_id']))
-Number_Users = len(np.unique(data['user_id']))
+# pass in column names for each CSV and read them using pandas. 
+# Column names available in the readme file
+#We have used Graph lab a python package built to make recommender system
+import graphlab
+
+
+#Reading users file:
+u_cols = ['user_id', 'age', 'sex', 'occupation', 'zip_code']
+users = pd.read_csv('ml-100k/u.user', sep='|', names=u_cols,
+ encoding='latin-1')
+
+#Reading ratings file:
+r_cols = ['user_id', 'movie_id', 'rating', 'unix_timestamp']
+ratings = pd.read_csv('ml-100k/u.data', sep='\t', names=r_cols,
+ encoding='latin-1')
+
+#Reading items file:
+i_cols = ['movie id', 'movie title' ,'release date','video release date', 'IMDb URL', 'unknown', 'Action', 'Adventure',
+ 'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy',
+ 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
+items = pd.read_csv('ml-100k/u.item', sep='|', names=i_cols,
+ encoding='latin-1')
+
+#Now we have to divide the ratings data set into test and train data for making models. Luckily GroupLens provides
+#pre-divided data wherein the test 
+#data has 10 ratings for each user
+r_cols = ['user_id', 'movie_id', 'rating', 'unix_timestamp']
+ratings_base = pd.read_csv('ml-100k/ua.base', sep='\t', names=r_cols, encoding='latin-1')
+ratings_test = pd.read_csv('ml-100k/ua.test', sep='\t', names=r_cols, encoding='latin-1')
+ratings_base.shape, ratings_test.shape
+
+
+train_data = graphlab.SFrame(ratings_base)
+test_data = graphlab.SFrame(ratings_test)
+#now we have to train our model using graphlab model
+popularity_model = graphlab.popularity_recommender.create(train_data, user_id='user_id', item_id='movie_id', target='rating')
+
+#Lets use this model to make top 5 recommendations for first 5 users and see what comes out
+#Get recommendations for first 5 users and print them
+#users = range(1,6) specifies user ID of first 5 users
+#k=5 specifies top 5 recommendations to be given
+popularity_recomm = popularity_model.recommend(users=range(1,6),k=5)
+popularity_recomm.print_rows(num_rows=25)
+
+# Now for more better precision of visualization
+
+ratings_base.groupby(by='movie_id')['rating'].mean().sort_values(ascending=False).head(20)
+
